@@ -39,3 +39,12 @@
 
 # debug information files
 *.dwo
+
+# Build Directory
+build/
+
+# Project Executables
+ub-client
+run_tests
+
+/cache
