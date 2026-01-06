@@ -6,6 +6,7 @@
 #include "RequestManager.hpp"
 #include "ResponseCache.hpp"
 #include "UserInterface.hpp"
+#include "Utils.hpp"
 
 int main(int argc, char* argv[]) {
     // 1. Load Config
@@ -23,9 +24,10 @@ int main(int argc, char* argv[]) {
         if (mode == "--cities") {
             endpoint = "/GetCities";
         } else if (mode == "--location" && argc >= 3) {
-            endpoint = "/GetLocation?name=" + std::string(argv[2]);
+            endpoint = "/GetLocation?name=" + ub::Utils::urlEncode(argv[2]);
         } else if (mode == "--weather" && argc >= 4) {
-            endpoint = "/GetWeather?lat=" + std::string(argv[2]) + "&lon=" + std::string(argv[3]);
+            endpoint = "/GetWeather?lat=" + ub::Utils::urlEncode(argv[2]) +
+                       "&lon=" + ub::Utils::urlEncode(argv[3]);
         } else if (mode == "--surprise") {
             endpoint = "/GetSurprise";
         } else {
@@ -53,14 +55,15 @@ int main(int argc, char* argv[]) {
             case ub::MenuChoice::GET_LOCATION: {
                 std::string name = ui.askLocationName();
                 mode_str = "location";
-                endpoint = "/GetLocation?name=" + name;
+                endpoint = "/GetLocation?name=" + ub::Utils::urlEncode(name);
                 break;
             }
             case ub::MenuChoice::GET_WEATHER: {
                 std::string lat, lon;
                 ui.askCoordinates(lat, lon);
                 mode_str = "weather";
-                endpoint = "/GetWeather?lat=" + lat + "&lon=" + lon;
+                endpoint = "/GetWeather?lat=" + ub::Utils::urlEncode(lat) +
+                           "&lon=" + ub::Utils::urlEncode(lon);
                 break;
             }
             case ub::MenuChoice::GET_SURPRISE:

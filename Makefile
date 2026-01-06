@@ -22,13 +22,14 @@ ALL_FILES = $(SRC) $(TEST_SRC) $(HEADERS)
 
 BUILD_DIR = build
 STAMP_DIR = $(BUILD_DIR)/stamps
+LOG_DIR = logs
 OBJ = $(SRC:%.cpp=$(BUILD_DIR)/%.o)
 TARGET = ub-client
 
 FORMAT_STAMPS = $(ALL_FILES:%=$(STAMP_DIR)/%.format.stamp)
 LINT_STAMPS = $(ALL_FILES:%=$(STAMP_DIR)/%.lint.stamp)
 
-.PHONY: all clean test libs format lint
+.PHONY: all clean test libs format lint fast
 
 # The 'all' target is now wrapped to handle the "Nothing to be done" case nicely
 all:
@@ -40,18 +41,31 @@ all:
 		$(PRETTY) OK "Everything up to date"; \
 	fi
 
+
+fast:
+	@echo "Starting fast building (no lint) using $(CORES) cores..."
+	@if ! $(MAKE) -j$(CORES) -q $(TARGET) 2>/dev/null; then \
+		$(MAKE) -j$(CORES) --no-print-directory --silent $(TARGET) || ($(PRETTY) FAIL "Fast build failed" && exit 1); \
+		$(PRETTY) OK "Fast build successful"; \
+	else \
+		$(PRETTY) OK "Everything up to date"; \
+	fi
+
 $(TARGET): $(OBJ)
-	@$(CXX) $(OBJ) -o $@ $(LDFLAGS) || ($(PRETTY) FAIL "Linking $@" && exit 1)
+	@mkdir -p $(LOG_DIR)
+	@$(CXX) $(OBJ) -o $@ $(LDFLAGS) > $(LOG_DIR)/link.log 2>&1 || ($(PRETTY) FAIL "Linking $@" && exit 1)
 	@$(PRETTY) OK "Linking $@"
 
 # Build vendor libs with -w (suppress all warnings) to ignore them completely
 libs:
 	@$(PRETTY) OK "Building vendor libraries"
-	@cd vendor/mbedtls && $(MAKE) -j$(CORES) --silent CFLAGS="-w -I../include -I." lib > /dev/null || ($(PRETTY) FAIL "Building vendor libraries" && exit 1)
+	@mkdir -p $(LOG_DIR)
+	@cd vendor/mbedtls && $(MAKE) -j$(CORES) --silent CFLAGS="-w -I../include -I." lib > ../../$(LOG_DIR)/mbedtls.log 2>&1 || ($(PRETTY) FAIL "Building vendor libraries" && exit 1)
 
 $(BUILD_DIR)/%.o: %.cpp $(STAMP_DIR)/%.cpp.format.stamp
 	@mkdir -p $(dir $@)
-	@$(CXX) $(CXXFLAGS) -c $< -o $@ || ($(PRETTY) FAIL "Compiling $<" && exit 1)
+	@mkdir -p $(dir $(LOG_DIR)/$*)
+	@$(CXX) $(CXXFLAGS) -c $< -o $@ > $(LOG_DIR)/$*.compile.log 2>&1 || ($(PRETTY) FAIL "Compiling $<" && exit 1)
 	@$(PRETTY) OK "Compiling $<"
 
 # Formatting
@@ -59,7 +73,8 @@ format: $(FORMAT_STAMPS)
 
 $(STAMP_DIR)/%.format.stamp: %
 	@mkdir -p $(dir $@)
-	@clang-format -i $< || ($(PRETTY) FAIL "Formatting $<" && exit 1)
+	@mkdir -p $(dir $(LOG_DIR)/$*)
+	@clang-format -i $< > $(LOG_DIR)/$*.format.log 2>&1 || ($(PRETTY) FAIL "Formatting $<" && exit 1)
 	@$(PRETTY) OK "Formatting $<"
 	@touch $@
 
@@ -68,7 +83,8 @@ lint: $(TARGET) $(LINT_STAMPS)
 
 $(STAMP_DIR)/%.lint.stamp: % $(STAMP_DIR)/%.format.stamp
 	@mkdir -p $(dir $@)
-	@clang-tidy --quiet --use-color -header-filter='^(src|include|tests)/.*' $< -- $(CXXFLAGS) > /dev/null 2>&1 || ($(PRETTY) FAIL "Linting $<" && exit 1)
+	@mkdir -p $(dir $(LOG_DIR)/$*)
+	@clang-tidy --quiet --use-color -header-filter='^(src|include|tests)/.*' $< -- $(CXXFLAGS) > $(LOG_DIR)/$*.lint.log 2>&1 || ($(PRETTY) FAIL "Linting $<" && exit 1)
 	@$(PRETTY) OK "Linting $<"
 	@touch $@
 
@@ -83,5 +99,6 @@ test: $(TARGET)
 clean:
 	@rm -rf $(BUILD_DIR) $(TARGET) run_tests
 	@rm -f cache/*.json
+	@find $(LOG_DIR) -type f \( -name "*.compile.log" -o -name "*.lint.log" -o -name "*.format.log" -o -name "link.log" -o -name "mbedtls.log" \) -delete 2>/dev/null || true
 	@find . -name "*.o" -not -path "./vendor/*" -delete
 	@$(PRETTY) OK "Cleaning project"

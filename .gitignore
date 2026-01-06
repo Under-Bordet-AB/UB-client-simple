@@ -48,3 +48,4 @@ ub-client
 run_tests
 
 /cache
+/logs

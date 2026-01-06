@@ -22,7 +22,7 @@ struct Config {
     std::string cache_directory = "./cache";
 
     // Logging
-    std::string log_file = "app.log";
+    std::string log_file = "logs/app.log";
     bool log_to_console = true;
 
     // Other

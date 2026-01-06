@@ -21,6 +21,7 @@ void RequestManager::handleRequest(const std::string& mode, const std::string& e
     // Fetch from Network
     std::string scheme = cfg.use_https ? "https" : "http";
     int port = cfg.use_https ? cfg.api_port_tls : cfg.api_port_tcp;
+
     std::string full_url = scheme + "://" + cfg.api_host + ":" + std::to_string(port) + endpoint;
     ub::Logger::log("Fetching from network: " + full_url);
 

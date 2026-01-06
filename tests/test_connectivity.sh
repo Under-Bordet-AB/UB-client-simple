@@ -62,7 +62,7 @@ run_suite() {
 
     # Run Tests
     run_test "$protocol" "--cities" "/GetCities"
-    run_test "$protocol" "--location Stockholm" "/GetLocation?name=Stockholm"
+    run_test "$protocol" "--location Örebro" "/GetLocation?name=Örebro"
     run_test "$protocol" "--weather 59.32 18.06" "/GetWeather?lat=59.32&lon=18.06"
     run_test "$protocol" "--surprise" "/GetSurprise"
 }
