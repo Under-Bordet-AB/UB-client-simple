@@ -50,3 +50,8 @@ run_tests
 /cache
 /logs
 /gh_2.83.2_linux_amd64
+
+# Clangd / IDE
+compile_commands.json
+.cache/
+.vscode/
